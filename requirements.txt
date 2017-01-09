@@ -1,7 +1,11 @@
 click==6.7
 enum-compat==0.0.2
+eventlet==0.20.1
 Flask==0.12
+Flask-Login==0.4.0
 Flask-OAuthlib==0.9.3
+Flask-SocketIO==2.8.2
+greenlet==0.4.11
 itsdangerous==0.24
 Jinja2==2.9.3
 MarkupSafe==0.23

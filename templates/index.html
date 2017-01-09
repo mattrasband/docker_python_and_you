@@ -13,26 +13,6 @@
         <style>
 
         </style>
-        <script defer
-            src="https://code.jquery.com/jquery-3.1.1.min.js"
-            integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
-            crossorigin="anonymous"></script>
-        <script defer
-            src="https://console.developers.google.com/apis/credentials/oauthclient/4401369695-ouuhm5dn5l9le9qekvs02gisslhecqft.apps.googleusercontent.com?project=4401369695"></script>
-        <!--script defer
-            src="https://code.jquery.com/jquery-3.1.1.slim.min.js"
-            integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n"
-            crossorigin="anonymous"></script-->
-        <script defer
-            src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js"
-            integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb"
-            crossorigin="anonymous"></script>
-        <script defer
-            src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js"
-            integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn"
-            crossorigin="anonymous"></script>
-        <script defer
-            src="https://use.fontawesome.com/c62f346935.js"></script>
     </head>
     <body>
         <nav class="navbar navbar-light bg-faded">
@@ -45,6 +25,8 @@
                 {% endif %}
             </form>
         </nav>
+
+        {% if not session.user %}
         <div class="container">
             <div class="pt-3">
                 <div class="jumbotron">
@@ -53,5 +35,89 @@
                 </div>
             </div>
         </div>
+        {% else %}
+        <div class="container pt-3">
+            <nav class="navbar navbar-light bg-faded">
+                <div class="navbar-brand">Chat</div>
+                {#<span class="navbar-text">
+                    {{ session.user.given_name }} {{ session.user.family_name }}
+                </span>#}
+            </nav>
+            <div class="container-fluid border pb-3" style="border: 1px solid #ddd;">
+                <div id="chat_window" class="col-sm-12 mt-2 mb-3" style="min-height: 400px; border: 1px solid #ddd;"></div>
+                <div class="col-sm-12">
+                    <form class="input-group" id="send_message">
+                        <input type="text" class="form-control" placeholder="Send a message...">
+                        <span class="input-group-btn">
+                            <button class="btn btn-secondary" type="submit">Send</button>
+                        </span>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <script src="https://code.jquery.com/jquery-3.1.1.min.js"
+            integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
+            crossorigin="anonymous"></script>
+        <script src="https://console.developers.google.com/apis/credentials/oauthclient/4401369695-ouuhm5dn5l9le9qekvs02gisslhecqft.apps.googleusercontent.com?project=4401369695"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js"
+            integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb"
+            crossorigin="anonymous"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js"
+            integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn"
+            crossorigin="anonymous"></script>
+        <script src="https://use.fontawesome.com/c62f346935.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+
+        {% if session.user %}
+        <script>
+        $(document).ready(function() {
+            var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+            socket.on('connect', function() {
+                console.log('Connected.');
+            });
+
+            socket.on('user_connected', function(u) {
+                console.log('user_connected:', u);
+                $('#chat_window').append($(
+                    '<div class="col-sm-12">' +
+                    '    <div class="text-muted"><em>' + u.user.given_name + '</em> has connected</div>' +
+                    '</div>'
+                ));
+            });
+
+            socket.on('user_disconnected', function(u) {
+                console.log('user_disconnected:', u);
+                $('#chat_window').append($(
+                    '<div class="col-sm-12">' +
+                    '    <div class="text-muted"><em>' + u.user.given_name + '</em> has disconnected</div>' +
+                    '</div>'
+                ));
+            });
+
+            socket.on('message', function(m) {
+                console.log('message:', m);
+                $('#chat_window').append($(
+                    '<div class="col-sm-12">' +
+                    '    <div class="col-sm-4 text-muted">' + m.user.given_name + '</div>' +
+                    '    <div class="col-sm-8">' + m.message.message + '</div>' + 
+                    '</div>'
+                ));
+            });
+
+            $('#send_message').submit(function(e) {
+                e.preventDefault();
+
+                socket.emit('message', {
+                    message: e.target[0].value,
+                });
+
+                $(e.target[0]).val('');
+            });
+        });
+        </script>
+        {% endif %}
     </body>
 </html>
