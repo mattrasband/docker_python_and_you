@@ -14,9 +14,15 @@
 
         </style>
         <script defer
+            src="https://code.jquery.com/jquery-3.1.1.min.js"
+            integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
+            crossorigin="anonymous"></script>
+        <script defer
+            src="https://console.developers.google.com/apis/credentials/oauthclient/4401369695-ouuhm5dn5l9le9qekvs02gisslhecqft.apps.googleusercontent.com?project=4401369695"></script>
+        <!--script defer
             src="https://code.jquery.com/jquery-3.1.1.slim.min.js"
             integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n"
-            crossorigin="anonymous"></script>
+            crossorigin="anonymous"></script-->
         <script defer
             src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js"
             integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb"
@@ -29,6 +35,16 @@
             src="https://use.fontawesome.com/c62f346935.js"></script>
     </head>
     <body>
+        <nav class="navbar navbar-light bg-faded">
+            <a class="navbar-brand" href="{{ url_for('index') }}">Chattr</a>
+            <form class="form-inline ml-auto" style="margin-top: -30px; margin-bottom: 5px;">
+                {% if not session.user %}
+                    <a href="{{ url_for('login_google') }}" class="btn btn-sm" type="button">Login</a>
+                {% else %}
+                    <a href="{{ url_for('logout') }}" class="btn btn-sm" type="button">Logout</a>
+                {% endif %}
+            </form>
+        </nav>
         <div class="container">
             <div class="pt-3">
                 <div class="jumbotron">
