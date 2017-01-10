@@ -1,5 +1,7 @@
 # Docker, Python, and You
 
+[Slides](https://docs.google.com/presentation/d/1CjxHH3fhiEdyaa5ZIrAf-GIxHhXsSV3E8jbhvNJ3HHs/edit?usp=sharing)
+
 ## Build
 
 Builds the image, after this it's immutable in the current form:
