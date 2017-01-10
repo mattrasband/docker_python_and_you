@@ -75,6 +75,28 @@
         $(document).ready(function() {
             var socket = io.connect('http://' + document.domain + ':' + location.port);
 
+            function addMessage(username, content) {
+                $('#chat_window').append($(
+                    '<div class="col-sm-12">' +
+                    '    <div class="col-sm-12"><span class="text-muted">' + username + ':</span> ' + content + '</div>' +
+                    '</div>'
+                ));
+            }
+
+            // load latest messages when we connect...
+            $.get('/api/messages?page_size=5')
+                .done(function(d) {
+                    var latest5 = d[0].items.reverse();
+                    console.log(latest5);
+
+                    latest5.forEach(function(m) {
+                        addMessage(m.user.email, m.content);
+                    });
+                })
+                .fail(function(err) {
+                    console.error('Could not get messages:', err);
+                });
+
             socket.on('connect', function() {
                 console.log('Connected.');
             });
@@ -83,7 +105,7 @@
                 console.log('user_connected:', u);
                 $('#chat_window').append($(
                     '<div class="col-sm-12">' +
-                    '    <div class="text-muted"><em>' + u.user.given_name + '</em> has connected</div>' +
+                    '    <div class="text-muted"><em>' + u.user.email + '</em> has connected</div>' +
                     '</div>'
                 ));
             });
@@ -92,19 +114,14 @@
                 console.log('user_disconnected:', u);
                 $('#chat_window').append($(
                     '<div class="col-sm-12">' +
-                    '    <div class="text-muted"><em>' + u.user.given_name + '</em> has disconnected</div>' +
+                    '    <div class="text-muted"><em>' + u.user.email + '</em> has disconnected</div>' +
                     '</div>'
                 ));
             });
 
             socket.on('message', function(m) {
                 console.log('message:', m);
-                $('#chat_window').append($(
-                    '<div class="col-sm-12">' +
-                    '    <div class="col-sm-4 text-muted">' + m.user.given_name + '</div>' +
-                    '    <div class="col-sm-8">' + m.message.message + '</div>' + 
-                    '</div>'
-                ));
+                addMessage(m.user.email, m.message.message);
             });
 
             $('#send_message').submit(function(e) {

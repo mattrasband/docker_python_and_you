@@ -4,6 +4,7 @@ import logging
 import os
 from datetime import datetime
 
+import pytz
 from flask import (
     Flask,
     jsonify,
@@ -16,7 +17,8 @@ from flask_migrate import Migrate
 from flask_oauthlib.client import OAuth
 from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
-import pytz
+from sqlalchemy import desc
+from marshmallow import Schema, fields
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -57,6 +59,33 @@ class Message(db.Model):
     timestamp = db.Column(db.DateTime, default=lambda: datetime.now(pytz.utc))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     content = db.Column(db.String, nullable=False)
+
+
+class UserSchema(Schema):
+    id = fields.Integer()
+    email = fields.String()
+
+
+class MessageSchema(Schema):
+    id = fields.Integer()
+    timestamp = fields.DateTime()
+    user = fields.Nested(UserSchema)
+    content = fields.String()
+
+
+class MessagePagedSchema(Schema):
+    has_next = fields.Bool()
+    has_pref = fields.Bool()
+    items = fields.Nested(MessageSchema, many=True)
+    next_num = fields.Integer()
+    page = fields.Integer()
+    pages = fields.Integer()
+    per_page = fields.Integer()
+    prev_num = fields.Integer()
+    total = fields.Integer()
+
+
+paged_message_schema = MessagePagedSchema()
 
 
 @socketio.on('connect')
@@ -141,6 +170,12 @@ def logout():
 def index():
     """Index page..."""
     return render_template('index.html')
+
+
+@app.route('/api/messages')
+def api_messages():
+    messages = Message.query.order_by(desc(Message.timestamp)).paginate()
+    return jsonify(paged_message_schema.dump(messages))
 
 
 if __name__ == '__main__':
