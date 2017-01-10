@@ -23,7 +23,7 @@ app.config.update({
                             base64.b64encode(os.urandom(16)).decode('utf-8')),
 })
 oauth = OAuth(app)
-socketio = SocketIO(app)
+socketio = SocketIO(app, message_queue=os.environ['APP_AMQP_URL'])
 
 google = oauth.remote_app('google',
                           consumer_key=os.environ['APP_CONSUMER_KEY'],
@@ -90,11 +90,13 @@ def google_callback():
         return 'Access Denied!'
     session['google_token'] = resp['access_token']
     session['user'] = google.get('userinfo').data
+    logger.info('New user logged in: %s', session['user'])
     return redirect(url_for('index'))
 
 
 @app.route('/logout')
 def logout():
+    """Log the user out"""
     logger.info('User logging out')
     session.pop('google_token', None)
     session.pop('user', None)
@@ -103,10 +105,13 @@ def logout():
 
 @app.route('/')
 def index():
+    """Index page..."""
     return render_template('index.html')
 
 
 if __name__ == '__main__':
     logger.info('Booting...')
+    import eventlet
+    eventlet.monkey_patch()
     socketio.run(app, host='0.0.0.0', port=int(os.getenv('APP_PORT', 5000)))
 
