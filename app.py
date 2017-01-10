@@ -2,6 +2,7 @@
 import base64
 import logging
 import os
+from datetime import datetime
 
 from flask import (
     Flask,
@@ -11,8 +12,11 @@ from flask import (
     session,
     url_for,
 )
+from flask_migrate import Migrate
 from flask_oauthlib.client import OAuth
 from flask_socketio import SocketIO
+from flask_sqlalchemy import SQLAlchemy
+import pytz
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -21,9 +25,13 @@ app = Flask(__name__)
 app.config.update({
     'SECRET_KEY': os.getenv('APP_SECRET_KEY',
                             base64.b64encode(os.urandom(16)).decode('utf-8')),
+    'SQLALCHEMY_DATABASE_URI': os.environ['DATABASE_URI'],
+    'SQLALCHEMY_TRACK_MODIFICATIONS': False,
 })
 oauth = OAuth(app)
 socketio = SocketIO(app, message_queue=os.environ['APP_AMQP_URL'])
+db = SQLAlchemy(app)
+Migrate(app, db)
 
 google = oauth.remote_app('google',
                           consumer_key=os.environ['APP_CONSUMER_KEY'],
@@ -36,6 +44,19 @@ google = oauth.remote_app('google',
                         access_token_method='POST',
                         access_token_url='https://accounts.google.com/o/oauth2/token',
                         authorize_url='https://accounts.google.com/o/oauth2/auth')
+
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(55), unique=True, nullable=False)
+    messages = db.relationship('Message', backref='user', lazy='dynamic')
+
+
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(pytz.utc))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    content = db.Column(db.String, nullable=False)
 
 
 @socketio.on('connect')
@@ -61,6 +82,9 @@ def on_user_disconnect():
 @socketio.on('message')
 def on_message(message):
     logger.info('New message: %s', message)
+    db.session.add(Message(content=message['message'],
+                           user_id=session['user_id']))
+    db.session.commit()
     socketio.emit('message', {
         'user': session['user'],
         'message': message,
@@ -89,8 +113,18 @@ def google_callback():
         logger.info('User denied OAuth2 request')
         return 'Access Denied!'
     session['google_token'] = resp['access_token']
-    session['user'] = google.get('userinfo').data
-    logger.info('New user logged in: %s', session['user'])
+
+    # Note: you should probably use something like flask-login
+    g_user = google.get('userinfo').data
+    session['user'] = g_user
+
+    existing_user = User.query.filter_by(email=g_user['email']).first()
+    if existing_user is None:
+        existing_user = User(email=g_user['email'])
+        db.session.add(existing_user)
+        db.session.commit()
+    session['user_id'] = existing_user.id
+    logger.info('User logged in: %s', g_user['email'])
     return redirect(url_for('index'))
 
 

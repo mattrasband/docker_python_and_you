@@ -7,8 +7,10 @@ services:
       - "5000:5000"
     depends_on:
       - rabbit
+      - postgres
     links:
       - rabbit
+      - postgres
     environment:
       - "APP_CONSUMER_KEY=4401369695-ouuhm5dn5l9le9qekvs02gisslhecqft.apps.googleusercontent.com"
       - "APP_CONSUMER_SECRET=KJhRnMjUdAgsrsVmA7eqljMw"
@@ -16,7 +18,8 @@ services:
       - "APP_AMQP_URL=amqp://rabbit"
       - "FLASK_DEBUG=1"
       - "FLASK_APP=app.py"
-    command: bash -c "sleep 5 && ./app.py"
+      - "DATABASE_URI=postgres://postgres:postgres@postgres/postgres"
+    command: bash -c "sleep 3 && flask db upgrade && ./app.py"
 
   # Normally you wouldn't do this, but since we are running on the same
   # host you otherwise get port conflicts
@@ -24,9 +27,15 @@ services:
     <<: *app
     ports:
       - "5001:5000"
+    command: bash -c "sleep 5 && ./app.py"
 
   rabbit:
     image: rabbitmq:management
-    ports:
-      - "5672:5672"
-      - "15672:15672"
+    # ports:
+    #   - "5672:5672"
+    #   - "15672:15672"
+
+  postgres:
+    image: postgres:9.4
+    # ports:
+    #  - "5432:5432"
